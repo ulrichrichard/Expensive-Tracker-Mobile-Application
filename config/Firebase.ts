@@ -9,12 +9,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBDrGIN46fKgl8aVSnc2FpAWL1Tqt9uP0A",
-  authDomain: "expense-tracker-mob-app-30039.firebaseapp.com",
-  projectId: "expense-tracker-mob-app-30039",
-  storageBucket: "expense-tracker-mob-app-30039.firebasestorage.app",
-  messagingSenderId: "555381305350",
-  appId: "1:555381305350:web:fe4fde0bfb8fbb795e5387"
+  apiKey: "AIzaSyDjd-KBAqGstzFQStTN2eXWPC3baK7OAcI",
+  authDomain: "doctor-management-mob-app.firebaseapp.com",
+  projectId: "doctor-management-mob-app",
+  storageBucket: "doctor-management-mob-app.firebasestorage.app",
+  messagingSenderId: "691501069737",
+  appId: "1:691501069737:web:adf90a5c82478abf5e80b8"
 };
 
 // Initialize Firebase

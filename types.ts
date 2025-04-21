@@ -90,15 +90,15 @@ export type ExpenseCategoriesType = {
   [key: string]: CategoryType;
 };
 
-export type TransactionListType = {
-  data: TransactionType[];
+export type DoctorListType = {
+  data: DoctorType[];
   title?: string;
   loading?: boolean;
   emptyListMessage?: string;
 };
 
 export type TransactionItemProps = {
-  item: TransactionType;
+  item: DoctorType;
   index: number;
   handleClick: Function;
 };
@@ -161,12 +161,12 @@ export type ResponseType = {
   msg?: string;
 };
 
-export type WalletType = {
+export type DoctorType = {
   id?: string;
   name: string;
-  amount?: number;
-  totalIncome?: number;
-  totalExpenses?: number;
+  daysNumber?: number;
+  dailyRate?: number;
+  payment?: number;
   image: any;
   uid?: string;
   created?: Date;

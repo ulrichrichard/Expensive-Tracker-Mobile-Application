@@ -1,77 +1,101 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
-import Button from '@/components/Button'
-import Typo from '@/components/Typo'
-import { colors, spacingX, spacingY } from '@/constants/theme'
-import { signOut } from 'firebase/auth'
-import { auth } from '@/config/Firebase'
-import { useAuth } from '@/context/auhtContext'
-import ScreenWrapper from '@/components/ScreenWrapper'
-import { verticalScale } from '@/utils/styling'
-import * as Icons from "phosphor-react-native"
-import HomeCard from '@/components/HomeCard'
-import TransactionList from '@/components/TransactionList'
-import { useRouter } from 'expo-router'
-import { limit, orderBy, where } from 'firebase/firestore'
-import useFetchData from '@/hooks/useFetchData'
-import { TransactionType } from '@/types'
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import React from "react";
+import Button from "@/components/Button";
+import Typo from "@/components/Typo";
+import { colors, spacingX, spacingY } from "@/constants/theme";
+import { useAuth } from "@/context/auhtContext";
+import ScreenWrapper from "@/components/ScreenWrapper";
+import { verticalScale } from "@/utils/styling";
+import * as Icons from "phosphor-react-native";
+import HomeCard from "@/components/HomeCard";
+import TransactionList from "@/components/TransactionList";
+import { useRouter } from "expo-router";
+import { limit, orderBy, where } from "firebase/firestore";
+import useFetchData from "@/hooks/useFetchData";
+import { DoctorType } from "@/types";
 
 const Home = () => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
-  const constraints = [
+  /*   const constraints = [
     where("uid", "==", user?.uid),
     orderBy("date", "desc"),
-    limit(30)
+    limit(30),
   ];
 
+  const {
+    data: recentDoctors,
+    error,
+    loading: doctorsLoading,
+  } = useFetchData<DoctorType>("doctors", constraints); */
 
-  const {data: recentTransactions, error, loading: transactionsLoading} = useFetchData<TransactionType>("transactions", constraints);
+  const {
+    data: recentDoctors,
+    error,
+    loading: doctorsLoading,
+  } = useFetchData<DoctorType>("doctors", [
+    where("uid", "==", user?.uid),
+    orderBy("created", "desc"),
+  ]);
+
+  console.log(recentDoctors);
 
   return (
     <ScreenWrapper>
       <View style={styles.container}>
         {/** header */}
         <View style={styles.header}>
-          <View style={{gap: 4}}>
-            <Typo size={16} color={colors.neutral400}>Hello,</Typo>
+          <View style={{ gap: 4 }}>
+            <Typo size={16} color={colors.neutral400}>
+              Salut,
+            </Typo>
             <Typo size={20} fontWeight={"500"}>
               {user?.name}
             </Typo>
           </View>
           <TouchableOpacity style={styles.searchIcon}>
-            <Icons.MagnifyingGlass 
+            <Icons.MagnifyingGlass
               size={verticalScale(22)}
               color={colors.neutral200}
-              weight='bold' />
+              weight="bold"
+            />
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollViewStyle}
-          showsVerticalScrollIndicator={false} >
+          showsVerticalScrollIndicator={false}
+        >
+          {/** We need to create an index to the database */}
+          <TransactionList
+            data={recentDoctors}
+            loading={doctorsLoading}
+            emptyListMessage="Pas encore de Medecin ajouté !"
+            title="Médecins récents"
+          />
           {/** card */}
           <View>
             <HomeCard />
           </View>
-
-          {/** We need to create an index to the database */}
-          <TransactionList data={recentTransactions} loading={transactionsLoading} emptyListMessage='No Transaction added yet!' title='Recent Transactions' />
         </ScrollView>
 
-        <Button style={styles.floatingButton} onPress={()=> router.push("/(modals)/transactionModal")}>
+        <Button
+          style={styles.floatingButton}
+          onPress={() => router.push("/(modals)/doctorModal")}
+        >
           <Icons.Plus
             color={colors.black}
-            weight='bold'
-            size={verticalScale(24)} />
+            weight="bold"
+            size={verticalScale(24)}
+          />
         </Button>
       </View>
     </ScreenWrapper>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;
 
 const styles = StyleSheet.create({
   container: {

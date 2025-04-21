@@ -1,67 +1,66 @@
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
-import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React from "react";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { colors, radius, spacingX, spacingY } from "@/constants/theme";
 import { scale, verticalScale } from "@/utils/styling";
 import Header from "@/components/Header";
-import SegmentedControl from "@react-native-segmented-control/segmented-control";
-import {
-  BarChart,
-  LineChart,
-  PieChart,
-  PopulationPyramid,
-} from "react-native-gifted-charts";
-import Typo from "@/components/Typo";
+import { BarChart } from "react-native-gifted-charts";
 import Loading from "@/components/Loading";
+import useFetchData from "@/hooks/useFetchData";
+import { DoctorType } from "@/types";
+import { where, orderBy } from "firebase/firestore";
 import { useAuth } from "@/context/auhtContext";
-import { fetchWeeklyStats } from "@/services/transactionService";
+import HomeCard from "@/components/HomeCard";
 import TransactionList from "@/components/TransactionList";
 
 const Statistics = () => {
-  const [activeIndex, setActiveIndex] = useState(0);
   const { user } = useAuth();
-  const [chartData, setChartData] = useState([]);
 
-  const [chartLoading, setChartLoading] = useState(false);
-  const [transaction, setTransaction] = useState([]);
+  const {
+    data: doctors,
+    error,
+    loading: doctorsLoading,
+  } = useFetchData<DoctorType>("doctors", [
+    where("uid", "==", user?.uid),
+    orderBy("created", "desc"),
+  ]);
 
-  useEffect(() => {
-    if (activeIndex == 0) {
-      getWeeklyStats();
-    }
-    if (activeIndex == 1) {
-      getWeeklyStats();
-    }
-    if (activeIndex == 2) {
-      getYearlyStats();
-    }
-  }, [activeIndex]);
+  const getTotals = () => {
+    return doctors.reduce(
+      (totals: any, item: DoctorType, index: number) => {
+        const payment = Number(item.payment) || 0;
 
-  const getWeeklyStats = async () => {
-    // get weekly stats
-    setChartLoading(true);
-    let res = await fetchWeeklyStats(user?.uid as string);
-    setChartLoading(false);
-    if (res.success) {
-      setChartData(res?.data?.stats);
-      setTransaction(res?.data?.transaction);
-    } else {
-      Alert.alert("Error", res.msg);
-    }
+        // Total
+        totals.payment += payment;
+
+        // Min
+        if (index === 0 || payment < totals.min) {
+          totals.min = payment;
+        }
+
+        // Max
+        if (index === 0 || payment > totals.max) {
+          totals.max = payment;
+        }
+
+        return totals;
+      },
+      { payment: 0, min: 0, max: 0 }
+    );
   };
-  const getMonthlyStats = async () => {
-    // get monthly stats
-  };
-  const getYearlyStats = async () => {
-    // get yearly stats
-  };
+
+  const chartData = doctors.map((doctor, index) => ({
+    label: doctor.name?.slice(0, 3) || "N/A",
+    value: Number(doctor.payment),
+    frontColor: colors.primary,
+  }));
+
+  const totals = getTotals();
 
   return (
     <ScreenWrapper>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Header title="Statistics" />
-        </View>
+        <Header title="Statistiques" />
 
         <ScrollView
           contentContainerStyle={{
@@ -71,65 +70,59 @@ const Statistics = () => {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <SegmentedControl
-            values={["Weekly", "Monthly", "Yearly"]}
-            selectedIndex={activeIndex}
-            onChange={(event) => {
-              setActiveIndex(event.nativeEvent.selectedSegmentIndex);
-            }}
-            tintColor={colors.neutral800}
-            appearance="dark"
-            activeFontStyle={styles.segmentFontStyle}
-            style={styles.segmentStyle}
-            fontStyle={{ ...styles.segmentFontStyle, color: colors.white }}
-          />
+          {doctorsLoading ? (
+            <Loading color={colors.white} />
+          ) : error ? (
+            <Text style={{ color: colors.rose }}>Error loading data</Text>
+          ) : (
+            <>
+              {/* Résumé des paiements */}
+              {/*               <View style={styles.summaryContainer}>
+                <Text style={styles.summaryText}>Total: ${totals.payment}</Text>
+                <Text style={styles.summaryText}>Min: ${totals.min}</Text>
+                <Text style={styles.summaryText}>Max: ${totals.max}</Text>
+              </View> */}
+              <HomeCard />
 
-          <View style={styles.chartContainer}>
-            {chartData.length > 0 ? (
-              <BarChart
-                data={chartData}
-                barWidth={scale(12)}
-                spacing={[1, 2].includes(activeIndex) ? scale(25) : scale(16)}
-                roundedTop
-                roundedBottom
-                hideRules
-                yAxisLabelPrefix="$"
-                yAxisThickness={0}
-                xAxisThickness={0}
-                yAxisLabelWidth={
-                  [1, 2].includes(activeIndex) ? scale(28) : scale(35)
-                }
-                //hideYAxisText
-                yAxisTextStyle={{ color: colors.neutral350 }}
-                xAxisLabelTextStyle={{
-                  color: colors.neutral350,
-                  fontSize: verticalScale(12),
-                }}
-                noOfSections={3}
-                minHeight={5}
-                //isAnimated={true}
-                //animationDuration={1000}
-                //maxValue={100}
-              />
-            ) : (
-              <View style={styles.noChart} />
-            )}
-
-            {chartLoading && (
-              <View style={styles.chartLoadingContainer}>
-                <Loading color={colors.white} />
+              {/* Histogramme */}
+              <View style={styles.chartContainer}>
+                {chartData.length > 0 ? (
+                  <BarChart
+                    data={chartData}
+                    barWidth={scale(14)}
+                    spacing={scale(20)}
+                    roundedTop
+                    roundedBottom
+                    hideRules
+                    yAxisLabelPrefix="Ar"
+                    yAxisThickness={0}
+                    xAxisThickness={0}
+                    yAxisLabelWidth={scale(35)}
+                    yAxisTextStyle={{ color: colors.neutral350 }}
+                    xAxisLabelTextStyle={{
+                      color: colors.neutral350,
+                      fontSize: verticalScale(13),
+                    }}
+                    noOfSections={3}
+                    minHeight={5}
+                  />
+                ) : (
+                  <View style={styles.noChart}>
+                    <Text style={{ color: colors.white }}>
+                      No data available
+                    </Text>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
-
-          {/** transactions */}
-          {/*           <View>
-            <TransactionList
-              title="Transactions"
-              emptyListMessage="No transations found"
-              data={transaction}
-            />
-          </View> */}
+              {/** We need to create an index to the database */}
+              <TransactionList
+                data={doctors}
+                loading={doctorsLoading}
+                emptyListMessage="Pas encore de Medecin ajouté !"
+                title="Médecins récents"
+              />
+            </>
+          )}
         </ScrollView>
       </View>
     </ScreenWrapper>
@@ -139,43 +132,32 @@ const Statistics = () => {
 export default Statistics;
 
 const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: spacingX._20,
+    paddingVertical: spacingY._5,
+    gap: spacingY._10,
+  },
+  summaryContainer: {
+    backgroundColor: colors.neutral700,
+    borderRadius: radius._12,
+    padding: spacingY._10,
+    gap: spacingY._5,
+  },
+  summaryText: {
+    color: colors.white,
+    fontSize: verticalScale(14),
+    fontWeight: "bold",
+  },
   chartContainer: {
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
   },
-  chartLoadingContainer: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    borderRadius: radius._12,
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  header: {},
   noChart: {
     backgroundColor: "rgba(0,0,0,0.6)",
     height: verticalScale(210),
-  },
-  searchIcon: {
-    backgroundColor: colors.neutral700,
-    alignItems: "center",
     justifyContent: "center",
-    borderRadius: 100,
-    height: verticalScale(35),
-    width: verticalScale(35),
-    borderCurve: "continuous",
-  },
-  segmentStyle: {
-    height: scale(37),
-  },
-  segmentFontStyle: {
-    fontSize: verticalScale(13),
-    fontWeight: "bold",
-    color: colors.black,
-  },
-  container: {
-    paddingHorizontal: spacingX._20,
-    paddingVertical: spacingY._5,
-    gap: spacingY._10,
+    alignItems: "center",
+    borderRadius: radius._12,
   },
 });
